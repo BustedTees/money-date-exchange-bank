@@ -8,12 +8,29 @@ class Money
     # for historical exchange rate lookup.
     # This Bank can also be used with the Extensions::Money to allow exchange_to
     # to take optional date and rate params.
-    class DateExchangeBank < Money::Bank::VariableExchange
+    class DateExchangeBank < Money::Bank::Base
+      attr_reader :store
+
       def initialize(store = Money::RatesStore::Memory.new, &block)
         @store = store
-        @get_rate_arg_count = store.method(:get_rate).arity
-
         super(&block)
+      end
+
+      # Registers a conversion rate and returns it (uses +#set_rate+).
+      # Delegates to +@store+
+      #
+      # @param [Currency, String, Symbol] from Currency to exchange from.
+      # @param [Currency, String, Symbol] to Currency to exchange to.
+      # @param [Numeric] rate Rate to use when exchanging currencies.
+      #
+      # @return [Numeric]
+      #
+      # @example
+      #   bank = Money::Bank::DateExchangeBank.new
+      #   bank.add_rate("USD", "CAD", 1.24515)
+      #   bank.add_rate("CAD", "USD", 0.803115)
+      def add_rate(from, to, rate)
+        set_rate(from, to, rate)
       end
 
       def exchange_with(from, to_currency, date: Time.now, rate: nil, &block)
@@ -38,12 +55,57 @@ class Money
 
         if @get_rate_arg_count == 2 # Support Money store interface.
           store.get_rate(from_iso_code, to_iso_code)
-        elsif @get_rate_arg_count == 3
+        elsif @get_rate_arg_count == -3
           store.get_rate(from_iso_code, to_iso_code, date: date)
         end
       end
 
+      # From Money::Bank::VariableExchange
+      def marshal_dump
+        [store.marshal_dump, @rounding_method]
+      end
+
+      # From Money::Bank::VariableExchange
+      def marshal_load(arr)
+        store_info = arr[0]
+        @store = store_info.shift.new(*store_info)
+        @rounding_method = arr[1]
+      end
+
       private
+
+      # From Money::Bank::VariableExchange
+      def calculate_fractional(from, to_currency)
+        BigDecimal(from.fractional.to_s) / (
+          BigDecimal(from.currency.subunit_to_unit.to_s) /
+          BigDecimal(to_currency.subunit_to_unit.to_s)
+        )
+      end
+
+      # From Money::Bank::VariableExchange
+      def exchange(fractional, rate)
+        ex = fractional * BigDecimal(rate.to_s)
+
+        if block_given?
+          yield ex
+        elsif @rounding_method
+          @rounding_method.call(ex)
+        else
+          ex
+        end
+      end
+
+      def setup
+        @get_rate_arg_count = store.method(:get_rate).arity
+        self
+      end
+
+      # From Money::Bank::VariableExchange
+      def set_rate(from, to, rate)
+        store.add_rate(
+          Currency.wrap(from).iso_code, Currency.wrap(to).iso_code, rate
+        )
+      end
 
       def wrap_rate(rate)
         return if rate.nil?
