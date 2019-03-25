@@ -1,7 +1,7 @@
 $LOAD_PATH << File.expand_path('lib', __dir__)
 
 Gem::Specification.new do |s|
-  s.name = 'money_date_exchange_bank'
+  s.name = 'money-date-exchange-bank'
   s.version = '0.0.1'
   s.summary = 'A Money Bank with support for exchanging currency with a'\
     ' specified rate or a historical date.'

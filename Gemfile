@@ -1,3 +1,3 @@
 source 'https://rubygems.org'
 
-gemspec name: 'money_date_exchange_bank'
+gemspec name: 'money-date-exchange-bank'
