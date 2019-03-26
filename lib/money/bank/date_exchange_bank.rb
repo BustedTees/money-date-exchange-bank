@@ -11,8 +11,19 @@ class Money
     class DateExchangeBank < Money::Bank::Base
       attr_reader :store
 
-      def initialize(store = Money::RatesStore::Memory.new, &block)
+      # @param store [Object] an instance of a Money store that responds to the
+      #   methods as defined by `gem money`.
+      # @param importer [Object] a callable object that takes a proc to add
+      #   rates to the bank.
+      # @return [Money::Bank::DateExchangeBank] an instance of the bank.
+      #
+      # @example
+      #   store = Money::RatesStore::Memory.new
+      #   importer = ->(add_rate) { add_rate.call('USD', 'EUR', 0.75) }
+      #   bank = Money::Bank::DateExchangeBank.new(store, importer: importer)
+      def initialize(store = Money::RatesStore::Memory.new, importer: nil, &block)
         @store = store
+        @importer = importer
         super(&block)
       end
 
@@ -58,6 +69,12 @@ class Money
         elsif @get_rate_arg_count == -3
           store.get_rate(from_iso_code, to_iso_code, date: date)
         end
+      end
+
+      def import_rates
+        return if @importer.nil?
+
+        @importer&.call(method(:add_rate))
       end
 
       # From Money::Bank::VariableExchange
