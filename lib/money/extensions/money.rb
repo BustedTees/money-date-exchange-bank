@@ -9,7 +9,7 @@ module Extensions
       puts 'Overriding Money#exchange_to, original method available as Money#orig_exchange_to.'
       base.class_eval do
         alias_method :orig_exchange_to, :exchange_to
-        def exchange_to(other_currency, date: Time.now, rate: nil, &rounding_method)
+        def exchange_to(other_currency, date: nil, rate: nil, &rounding_method)
           other_currency = ::Money::Currency.wrap(other_currency)
 
           if currency == other_currency
