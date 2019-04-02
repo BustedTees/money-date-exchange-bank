@@ -44,7 +44,7 @@ class Money
         set_rate(from, to, rate)
       end
 
-      def exchange_with(from, to_currency, date: Time.now, rate: nil, &block)
+      def exchange_with(from, to_currency, date: nil, rate: nil, &block)
         to_currency = Money::Currency.wrap(to_currency)
         return from if from.currency == to_currency
 
@@ -60,7 +60,7 @@ class Money
         from.class.new(exchange(fractional, rate, &block), to_currency)
       end
 
-      def get_rate(from_currency, to_currency, date: Time.now)
+      def get_rate(from_currency, to_currency, date: nil)
         from_iso_code = Money::Currency.wrap(from_currency).iso_code
         to_iso_code = Money::Currency.wrap(to_currency).iso_code
 
